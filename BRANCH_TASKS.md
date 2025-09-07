@@ -17,24 +17,24 @@ Main Task 1 — Project & environment foundations (all other work depends on thi
   - [x] Install pre-commit hook that checks/normalizes notebooks (configured to fail when changes are required)
 
 Main Task 2 — Data generation core (depends on Task 1)
-- [ ] 2.1 Large-scale batched generator (authoritative data source)
-  - Implement `scripts/generate_synthetic_large.py` with params: `--n-samples`, `--chunk-size`, `--seed`, `--out-dir`
-  - Write CSV in streaming chunks and compute SHA256 per chunk/file
+- [x] 2.1 Large-scale batched generator (authoritative data source)
+  - Implement `scripts/generate_synthetic_large.py` with params: `--n-samples`, `--chunk-size`, `--seed`, `--out-dir` (implemented)
+  - Write CSV in streaming chunks and compute SHA256 per chunk/file (done)
 - [ ] 2.2 Stratified sampling & balancing utilities
   - Add `--stratify-by` option and simple oversample/undersample modes to control class balance
-- [ ] 2.3 Storage & integrity
-  - Save final CSV + ZIP atomically and produce SHA256 for verification
+- [x] 2.3 Storage & integrity
+  - Save final CSV + ZIP atomically and produce SHA256 for verification (done)
   - (Optional) Add `--upload-to-drive` or `--upload-to-hf` flags (deferred)
 - [x] 2.4 Keep `scripts/generate_synthetic_smoke.py` for quick smoke tests (present and executed)
 
 Main Task 3 — Data validation & conversion (depends on Task 2)
-- [ ] 3.1 Validation utilities
-  - Add `scripts/validate_dataset.py` to check for missing targets, NaNs, range checks, and value distributions
-- [ ] 3.2 CSV → HF conversational Dataset converter
-  - Implement streaming/batched conversion to a Hugging Face `Dataset` to avoid large memory usage
-  - Add CLI options for `--target-field` and `--prompt-template`
-- [ ] 3.3 Unit tests for conversion
-  - Add a unit test in `tests/test_conversion.py` that checks prompt and target formatting
+- [x] 3.1 Validation utilities
+  - Add `scripts/validate_dataset.py` to check for missing targets, NaNs, range checks, and value distributions (implemented)
+- [x] 3.2 CSV → HF conversational Dataset converter
+  - Implement streaming/batched conversion to a Hugging Face `Dataset` to avoid large memory usage (converter implemented as JSONL shards)
+  - Add CLI options for `--target-field` and `--prompt-template` (CLI provided)
+- [x] 3.3 Unit tests for conversion
+  - Add a unit test in `tests/test_conversion.py` that checks prompt and target formatting (implemented and passing)
 
 Main Task 4 — Baselines & heuristics (depends on Task 3)
 - [ ] 4.1 Implement baseline predictors
@@ -77,7 +77,7 @@ Main Task 8 — Colab polish & one-click demo (depends on Task 5 + Task 7)
 
 Main Task 9 — Tests, CI and merge prep (depends on finished code)
 - [ ] 9.1 Unit tests
-  - Add tests for generator determinism, conversion output, and validator
+  - Add tests for generator determinism, conversion output, and validator (conversion test and validator added — generator determinism pending)
 - [ ] 9.2 Lightweight CI
   - Configure CI to run unit tests and smoke data generation only; avoid heavy GPU tasks
 - [ ] 9.3 Merge checklist
