@@ -46,7 +46,7 @@ def snr_to_efficiency_bps_per_hz(snr_db: float) -> float:
     return 10.0 / (1.0 + math.exp(-(snr_db - 25.0) / 4.0))
 
 
-def generate_row(i):
+def generate_row(i, forced=None):
     environment = random.choice(ENVIRONMENTS)
     density = random.choice(DENSITIES)
     lat_a = random.uniform(33.0, 36.0)
@@ -61,7 +61,15 @@ def generate_row(i):
     temp_c = random.uniform(-5, 42)
 
     fresnel_clear = random.uniform(10, 100)
+    # allow forced overrides for stratified generation
+    if forced is None:
+        forced = {}
+    environment = forced.get("environment_type", environment)
+    density = forced.get("area_density", density)
     obstructed = random.random() < 0.35
+    # if user forced image_obstruction_detected, respect it
+    if "image_obstruction_detected" in forced:
+        obstructed = bool(forced.get("image_obstruction_detected"))
     obst_type = random.choice(OBST_TYPES if obstructed else ["None"])
     noise_floor_dbm = random.uniform(-115, -82)
     noise_dbm = noise_floor_dbm + random.uniform(0, 8)
@@ -128,6 +136,7 @@ def main():
     parser.add_argument("--chunk-size", type=int, default=2000)
     parser.add_argument("--out-dir", type=str, default="data")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--stratify-by", type=str, default=None, help="Comma-separated fields to stratify on, e.g. environment_type,area_density")
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -141,12 +150,45 @@ def main():
     # Stream write in chunks
     cols = list(generate_row(0).keys())
     written = 0
+    strata = []
+    if args.stratify_by:
+        fields = [f.strip() for f in args.stratify_by.split(',')]
+        # build simple cartesian product of likely values for the requested fields
+        pool = {"environment_type": ENVIRONMENTS, "area_density": DENSITIES, "image_obstruction_detected": [True, False]}
+        for f in fields:
+            if f in pool:
+                strata.append((f, pool[f]))
+        # flatten to list of dicts
+        if strata:
+            combos = []
+            def build(idx, cur):
+                if idx >= len(strata):
+                    combos.append(dict(cur))
+                    return
+                key, vals = strata[idx]
+                for v in vals:
+                    cur[key] = v
+                    build(idx+1, cur)
+                cur.pop(key, None)
+            build(0, {})
+        else:
+            combos = []
+    else:
+        combos = []
+
     with open(csv_path, "w", encoding="utf-8") as fh:
         # header
         fh.write(",".join(cols) + "\n")
         while written < args.n_samples:
             chunk = min(args.chunk_size, args.n_samples - written)
-            rows = [generate_row(written + i) for i in range(chunk)]
+            rows = []
+            for i in range(chunk):
+                idx = (written + i)
+                if combos:
+                    forced = combos[idx % len(combos)]
+                    rows.append(generate_row(written + i, forced=forced))
+                else:
+                    rows.append(generate_row(written + i))
             df = pd.DataFrame(rows, columns=cols)
             df.to_csv(fh, header=False, index=False)
             written += chunk

@@ -58,7 +58,12 @@ def build_target_from_row(row, target_field):
 def prepare_dataset(csv_path, target_field, test_size=0.1, max_rows=None):
     # Local imports to avoid requiring heavy libraries when only parsing args/help
     import pandas as pd
-    from datasets import Dataset
+    try:
+        from datasets import Dataset
+        datasets_available = True
+    except Exception:
+        Dataset = None
+        datasets_available = False
 
     df = pd.read_csv(csv_path)
     if max_rows is not None:
@@ -75,12 +80,21 @@ def prepare_dataset(csv_path, target_field, test_size=0.1, max_rows=None):
         ]
         samples.append({"messages": messages})
 
-    ds = Dataset.from_pandas(pd.DataFrame(samples))
-    if test_size and 0.0 < test_size < 1.0:
-        ds = ds.train_test_split(test_size=test_size)
+    # If datasets is available, return a Hugging Face Dataset; otherwise fall back to simple lists
+    if datasets_available and Dataset is not None:
+        ds = Dataset.from_pandas(pd.DataFrame(samples))
+        if test_size and 0.0 < test_size < 1.0:
+            ds = ds.train_test_split(test_size=test_size)
+        else:
+            ds = {'train': ds}
+        return ds
     else:
-        ds = {'train': ds}
-    return ds
+        # Fallback: return a simple dict with train/test lists of message dicts
+        if test_size and 0.0 < test_size < 1.0:
+            split_idx = int(len(samples) * (1.0 - test_size))
+            return {'train': samples[:split_idx], 'test': samples[split_idx:]}
+        else:
+            return {'train': samples}
 
 
 def main():
@@ -99,6 +113,7 @@ def main():
     parser.add_argument('--learning-rate', type=float, default=5e-5)
     parser.add_argument('--target-field', default='recommended_channel_mhz', help='target field to train on')
     parser.add_argument('--max-rows', type=int, default=None, help='Limit rows (useful for quick smoke tests)')
+    parser.add_argument('--dry-run', action='store_true', help='Prepare datasets and skip model imports/training')
     # Resource & checkpointing flags
     parser.add_argument('--fp16', action='store_true', help='Use FP16 if available')
     parser.add_argument('--bf16', action='store_true', help='Use BF16 if available')
@@ -113,7 +128,29 @@ def main():
     print(f"Loading CSV from {args.csv} and preparing dataset (target={args.target_field})...")
     ds = prepare_dataset(args.csv, args.target_field, test_size=0.1, max_rows=args.max_rows)
 
-    # Lazy import to avoid requiring heavy libs if only using data prep
+    # If the user requested a dry-run, prepare the dataset and skip heavy imports/training.
+    if args.dry_run:
+        # Print lightweight dataset summary and exit before importing transformers/trl
+        if isinstance(ds, dict) and 'train' in ds:
+            try:
+                train_len = len(ds['train'])
+            except Exception:
+                train_len = 'unknown'
+            try:
+                test_len = len(ds['test']) if 'test' in ds else 0
+            except Exception:
+                test_len = 'unknown'
+        else:
+            try:
+                train_len = len(ds)
+            except Exception:
+                train_len = 'unknown'
+            test_len = 0
+        print(f"Dry-run: prepared dataset. train={train_len}, test={test_len}, max_rows={args.max_rows}")
+        print("Skipping model imports and trainer construction (dry-run).")
+        return
+
+    # Lazy import to avoid requiring heavy libs when executing full training
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM
     from trl import SFTConfig, SFTTrainer
