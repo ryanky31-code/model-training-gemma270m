@@ -35,7 +35,7 @@ This repo demonstrates an end-to-end flow for:
 
 High-level dataflow:
 
-````mermaid
+```mermaid
 flowchart LR
   A[Generator (CSV)] --> B[Validator]
   B --> C[Converter (CSV -> JSONL shards)]
@@ -43,7 +43,7 @@ flowchart LR
   D --> E[Training CLI / Notebook]
   E --> F[Checkpoints / Artifacts]
   F --> G[Evaluation]
-`````
+```
 
 
 
