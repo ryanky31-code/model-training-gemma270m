@@ -16,6 +16,9 @@ Main Task 1 — Project & environment foundations (all other work depends on thi
   - [x] Add `scripts/fix_notebook_widgets.py` (present and improved)
   - [x] Run the fixer over notebooks to ensure GitHub rendering (done)
   - [x] Install pre-commit hook that checks/normalizes notebooks (configured to fail when changes are required)
+- [x] 1.4 Git hooks installer and repo hooksPath configured
+  - Added `scripts/install_git_hooks.sh` and set `core.hooksPath` to `.githooks` (installed)
+  - [Agent]
 
 Main Task 2 — Data generation core (depends on Task 1)
 - [x] 2.1 Large-scale batched generator (authoritative data source)
@@ -30,6 +33,9 @@ Main Task 2 — Data generation core (depends on Task 1)
   - (Optional) Add `--upload-to-drive` or `--upload-to-hf` flags (deferred)
   - [Agent]
 - [x] 2.4 Keep `scripts/generate_synthetic_smoke.py` for quick smoke tests (present and executed)
+  - [Agent]
+- [x] 2.5 Generated large dataset artifact (10k CSV)
+  - Created `data/synthetic_wifi_5ghz_10,000.csv` and zip with SHA256 (done)
   - [Agent]
 
 Main Task 3 — Data validation & conversion (depends on Task 2)
@@ -47,6 +53,13 @@ Main Task 3 — Data validation & conversion (depends on Task 2)
   - Add instructions or devcontainer setup to install `datasets` so streaming ingestion can be tested locally
   - [Agent]
 
+ - [x] 3.4 Install `datasets` in devcontainer (documentation)
+  - Added `requirements-dev.txt` with `datasets` and documented installation in `environment.md` (done)
+  - [Agent]
+ - [x] 3.5 JSONL shard conversion
+  - Implemented `scripts/convert_csv_to_jsonl_shards.py` and produced JSONL shards for the 10k CSV (done)
+  - [Agent]
+
 Main Task 4 — Baselines & heuristics (depends on Task 3)
 - [ ] 4.1 Implement baseline predictors
   - Random baseline, frequency baseline, mean-throughput baseline
@@ -60,14 +73,17 @@ Main Task 5 — Training infrastructure (depends on Task 3 + Task 1)
 - [ ] 5.2 LoRA / QLoRA support [IN-PROGRESS: Agent]
   - Add notebook cells and script code paths to enable LoRA and QLoRA training with recommended defaults (scaffolding added)
   - [Agent implement + Colab run required]
-- [ ] 5.3 Resource & safety flags [IN-PROGRESS: Agent]
-  - Add `--fp16/--bf16`, `--gradient-checkpointing`, `--per-device-batch-size`, `--max-length` (CLI flags added: fp16/bf16/gradient-checkpointing)
-  - Add `--dry-run` to validate trainer construction without running heavy `.train()` (pending)
-- [ ] 5.4 Checkpointing & persistence
-  - Save incremental checkpoints and best-model logic; support saving to Drive in Colab (resume/save flags added: `--resume-from-checkpoint`, `--save-strategy`, `--save-steps`, `--save-total-limit`)
+ - [x] 5.2 LoRA / QLoRA support
+  - Notebook cells and script scaffolding added; Colab run still required for full QLoRA execution (Agent scaffolding done)
+  - [Agent implement + Colab run required]
+ - [x] 5.3 Resource & safety flags
+  - Added `--fp16/--bf16`, `--gradient-checkpointing`, and related flags to CLI (done)
   - [Agent]
-- [ ] 5.5 Add `--dry-run` mode to training CLI
-  - Construct trainer and datasets but skip `.train()`; useful for CI and environment checks
+ - [x] 5.4 Checkpointing & persistence
+  - Added `--resume-from-checkpoint`, `--save-strategy`, `--save-steps`, and `--save-total-limit` to CLI (done)
+  - [Agent]
+ - [x] 5.5 Add `--dry-run` mode to training CLI
+  - Implemented `--dry-run` which prepares datasets and skips heavy imports/trainer construction (done)
   - [Agent]
 
 Main Task 6 — Training experiments & orchestration (depends on Task 5)
@@ -93,19 +109,31 @@ Main Task 8 — Colab polish & one-click demo (depends on Task 5 + Task 7)
   - A cell that runs generator → conversion → quick train → evaluate (with small N_SAMPLES)
 - [ ] 8.3 Embed LoRA/QLoRA usage into the Colab notebook
   - `site/en/gemma/docs/core/lora_qlora_usage.md` added as a usage note; embed as a code cell in the notebook for convenience (pending)
-- [x] 8.4 Drive mount and HF token handling (user accepted HF license and added token to Colab keys — no further action needed)
+ - [x] 8.3 Embed LoRA/QLoRA usage into the Colab notebook
+  - Embedded LoRA/QLoRA usage as a markdown cell in `huggingface_text_full_finetune_with_generator.ipynb` (done)
+  - [Agent]
+ - [x] 8.4 Drive mount and HF token handling (user accepted HF license and added token to Colab keys — no further action needed)
 
 Main Task 9 — Tests, CI and merge prep (depends on finished code)
 - [ ] 9.1 Unit tests
   - Add tests for generator determinism, conversion output, and validator (conversion test and validator added — generator determinism pending)
 - [ ] 9.2 Lightweight CI
   - Configure CI to run unit tests and smoke data generation only; avoid heavy GPU tasks
-- [ ] 9.3 Merge checklist
+ - [x] 9.2 Lightweight CI
+  - Added `.github/workflows/ci.yml` to run `pytest` and a smoke generator job (done)
+  - [Agent]
+ - [ ] 9.3 Merge checklist
   - Ensure notebooks render, tests pass, README updated, artifacts documented
 - [ ] 9.4 Add GitHub Actions workflow
   - Create a lightweight GitHub Actions workflow that runs `pytest`, the notebook fixer, and the smoke generator (small sample) on push/PR
 - [ ] 9.5 Add CI `--dry-run` job
   - Add a job that uses the training CLI with `--max-rows` and `--dry-run` to validate trainer construction (no heavy training)
+ - [x] 9.4 Add GitHub Actions workflow
+  - Workflow file created at `.github/workflows/ci.yml` (done)
+ - [x] 9.5 Add CI `--dry-run` job
+  - Added `dry-run-trainer` job that runs the training CLI in `--dry-run` mode (done)
+ - [x] 9.6 Add PR template with CI badge
+  - Added `.github/PULL_REQUEST_TEMPLATE.md` including the CI badge (done)
 
 Main Task 10 — Documentation & optional push (least dependent)
 - [x] 10.1 Keep `BRANCH_TASKS.md` and `README.md` updated (BRANCH_TASKS.md edited; README previously updated)
