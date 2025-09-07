@@ -43,6 +43,9 @@ Main Task 3 — Data validation & conversion (depends on Task 2)
 - [x] 3.3 Unit tests for conversion
   - Add a unit test in `tests/test_conversion.py` that checks prompt and target formatting (implemented and passing)
   - [Agent]
+- [ ] 3.4 Install `datasets` in devcontainer (optional)
+  - Add instructions or devcontainer setup to install `datasets` so streaming ingestion can be tested locally
+  - [Agent]
 
 Main Task 4 — Baselines & heuristics (depends on Task 3)
 - [ ] 4.1 Implement baseline predictors
@@ -55,12 +58,17 @@ Main Task 5 — Training infrastructure (depends on Task 3 + Task 1)
   - Extend `scripts/finetune_gemma_from_csv.py` with modes: `--mode full|lora|qlora`, `--max-rows`, `--out-dir`, `--resume` (extend as needed)
   - [Agent]
 - [ ] 5.2 LoRA / QLoRA support [IN-PROGRESS: Agent]
-  - Add notebook cells and script code paths to enable LoRA and QLoRA training with recommended defaults
+  - Add notebook cells and script code paths to enable LoRA and QLoRA training with recommended defaults (scaffolding added)
   - [Agent implement + Colab run required]
-- [ ] 5.3 Resource & safety flags
-  - Add `--fp16/--bf16`, `--gradient-checkpointing`, `--per-device-batch-size`, `--max-length`
+- [ ] 5.3 Resource & safety flags [IN-PROGRESS: Agent]
+  - Add `--fp16/--bf16`, `--gradient-checkpointing`, `--per-device-batch-size`, `--max-length` (CLI flags added: fp16/bf16/gradient-checkpointing)
+  - Add `--dry-run` to validate trainer construction without running heavy `.train()` (pending)
 - [ ] 5.4 Checkpointing & persistence
-  - Save incremental checkpoints and best-model logic; support saving to Drive in Colab
+  - Save incremental checkpoints and best-model logic; support saving to Drive in Colab (resume/save flags added: `--resume-from-checkpoint`, `--save-strategy`, `--save-steps`, `--save-total-limit`)
+  - [Agent]
+- [ ] 5.5 Add `--dry-run` mode to training CLI
+  - Construct trainer and datasets but skip `.train()`; useful for CI and environment checks
+  - [Agent]
 
 Main Task 6 — Training experiments & orchestration (depends on Task 5)
 - [ ] 6.1 Learning-curve orchestration
@@ -68,7 +76,7 @@ Main Task 6 — Training experiments & orchestration (depends on Task 5)
 - [ ] 6.2 Simple hyperparameter sweep helper
   - Add a small wrapper to launch a few hyperparameter combinations and save results
 - [ ] 6.3 Smoke train / env checks
-  - `--dry-run` mode to build trainer and verify no immediate failures (but skip heavy `.train()`)
+  - `--dry-run` mode to build trainer and verify no immediate failures (but skip heavy `.train()`) (pending: tie to 5.5)
 
 Main Task 7 — Evaluation & analysis (depends on Task 6 + Task 4)
 - [ ] 7.1 Official evaluation script
@@ -83,7 +91,9 @@ Main Task 8 — Colab polish & one-click demo (depends on Task 5 + Task 7)
   - Add a top-of-notebook config cell for mode, N_SAMPLES, N_EPOCHS, BATCH_SIZE, OUT_DIR
 - [ ] 8.2 One-click demo cell
   - A cell that runs generator → conversion → quick train → evaluate (with small N_SAMPLES)
-- [x] 8.3 Drive mount and HF token handling (user accepted HF license and added token to Colab keys — no further action needed)
+- [ ] 8.3 Embed LoRA/QLoRA usage into the Colab notebook
+  - `site/en/gemma/docs/core/lora_qlora_usage.md` added as a usage note; embed as a code cell in the notebook for convenience (pending)
+- [x] 8.4 Drive mount and HF token handling (user accepted HF license and added token to Colab keys — no further action needed)
 
 Main Task 9 — Tests, CI and merge prep (depends on finished code)
 - [ ] 9.1 Unit tests
@@ -92,6 +102,10 @@ Main Task 9 — Tests, CI and merge prep (depends on finished code)
   - Configure CI to run unit tests and smoke data generation only; avoid heavy GPU tasks
 - [ ] 9.3 Merge checklist
   - Ensure notebooks render, tests pass, README updated, artifacts documented
+- [ ] 9.4 Add GitHub Actions workflow
+  - Create a lightweight GitHub Actions workflow that runs `pytest`, the notebook fixer, and the smoke generator (small sample) on push/PR
+- [ ] 9.5 Add CI `--dry-run` job
+  - Add a job that uses the training CLI with `--max-rows` and `--dry-run` to validate trainer construction (no heavy training)
 
 Main Task 10 — Documentation & optional push (least dependent)
 - [x] 10.1 Keep `BRANCH_TASKS.md` and `README.md` updated (BRANCH_TASKS.md edited; README previously updated)
