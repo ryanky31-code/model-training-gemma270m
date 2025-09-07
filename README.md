@@ -87,6 +87,46 @@ Common issues & troubleshooting
 - OOM during model load or training: reduce `per_device_train_batch_size`, reduce `max_length`, enable `gradient_checkpointing`, or use bf16/fp16 if your GPU supports it. For severe limits, switch to LoRA/QLoRA.
 - TRL / fused optimizers: if `adamw_torch_fused` or other fused ops fail, switch to standard `adamw_torch` or install matching PyTorch builds.
 
+LoRA vs QLoRA (step-by-step)
+--------------------------------
+LoRA (recommended for local/limited GPU)
+
+1. In Colab or your environment, install required packages (if not already):
+
+   ```bash
+   %pip install transformers peft
+   ```
+
+2. Run a quick smoke LoRA run (adapters only):
+
+   ```bash
+   python scripts/finetune_gemma_from_csv.py \
+     --csv synthetic_wifi_5ghz_outdoor_smoke.csv \
+     --mode lora \
+     --lora-r 8 --lora-alpha 32 --lora-dropout 0.05 \
+     --num-epochs 1 --per-device-batch-size 2 --max-rows 200 --dry-run
+   ```
+
+3. For a real LoRA run, increase `--num-epochs` and remove `--max-rows`.
+
+QLoRA (recommended for low-memory, Colab GPU)
+
+1. In Colab, install `bitsandbytes` and `peft` in a compatible CUDA environment:
+
+   ```bash
+   %pip install bitsandbytes peft
+   ```
+
+2. Run QLoRA in Colab (ensure you selected a GPU runtime):
+
+   ```bash
+   python scripts/finetune_gemma_from_csv.py \
+     --csv /content/synthetic_wifi_5ghz_outdoor.csv \
+     --mode qlora --num-epochs 2 --per-device-batch-size 4
+   ```
+
+3. Monitor memory/OOMs; adjust batch size, enable gradient checkpointing, or use fewer train samples if needed.
+
 Next steps and suggestions
 - Add explicit automated tests for CSV→dataset conversion. I can add a unit test that validates the first few records are converted to the expected message format.
 - Add a Colab cell to optionally push prepared dataset and final model to the Hugging Face hub (requires `push_to_hub=True` and token with write access).
