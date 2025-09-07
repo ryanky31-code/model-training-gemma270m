@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run notebook widget fixer on staged notebooks
+STAGED_NOTEBOOKS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.ipynb$' || true)
+if [ -n "$STAGED_NOTEBOOKS" ]; then
+  echo "Checking staged notebooks for widget metadata issues..."
+  changed=0
+  while IFS= read -r nb; do
+    [ -z "$nb" ] && continue
+    # Save staged content to a temp file
+    tmpstaged=$(mktemp)
+    git show :"$nb" > "$tmpstaged" 2>/dev/null || true
+    # Run fixer on working copy (may modify working tree)
+    python3 scripts/fix_notebook_widgets.py "$nb" || true
+    # Compare staged vs working copy
+    if command -v sha256sum >/dev/null 2>&1; then
+      pre=$(sha256sum "$tmpstaged" | cut -d' ' -f1)
+      post=$(sha256sum "$nb" | cut -d' ' -f1)
+    else
+      pre=$(md5sum "$tmpstaged" | cut -d' ' -f1)
+      post=$(md5sum "$nb" | cut -d' ' -f1)
+    fi
+    rm -f "$tmpstaged"
+    if [ "$pre" != "$post" ]; then
+      echo "ERROR: $nb was modified by the notebook fixer."
+      echo "  Please review the working-tree changes and re-stage before committing."
+      echo "  Example: git add '$nb' && git commit -m \"fix(notebook): strip metadata.widgets\""
+      changed=$((changed+1))
+    fi
+  done <<EOF
+$STAGED_NOTEBOOKS
+EOF
+
+  if [ "$changed" -gt 0 ]; then
+    echo "Aborting commit because $changed staged notebook(s) were modified by the fixer."
+    exit 1
+  fi
+fi
+
+exit 0
