@@ -28,8 +28,12 @@ HOOK
 
 chmod +x "$HOOKS_DIR/pre-commit"
 
-echo "Installing git hooks from $HOOKS_DIR to .git/hooks/"
-cp -v "$HOOKS_DIR"/* .git/hooks/
-chmod +x .git/hooks/*
+echo "Configuring repository to use hooks from $HOOKS_DIR"
+# Prefer setting core.hooksPath so hooks are tracked in the repo and we don't overwrite local .git/hooks samples
+git config core.hooksPath "$HOOKS_DIR"
+echo "Configured git to use hooks from $HOOKS_DIR (git config core.hooksPath)"
 
-echo "Git hooks installed."
+echo "Ensure hooks are executable"
+chmod +x "$HOOKS_DIR"/* || true
+
+echo "Git hooks configured. To revert, run: git config --unset core.hooksPath"
