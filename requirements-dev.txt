@@ -1,0 +1,4 @@
+# Development extras (for local testing and dataset streaming)
+# Install with: pip install -r requirements-dev.txt
+
+datasets

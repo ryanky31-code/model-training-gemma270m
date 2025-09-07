@@ -1,5 +1,7 @@
 # model-training-gemma270m
 
+[![CI](https://github.com/ryanky31-code/model-training-gemma270m/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanky31-code/model-training-gemma270m/actions/workflows/ci.yml)
+
 Detailed README — Gemma-3 (270M) fine-tuning from synthetic CSV data
 
 This repository demonstrates an end-to-end workflow for generating a synthetic wireless dataset, converting it into a conversational format, and fine-tuning Google's Gemma-3 270M model using Hugging Face Transformers + TRL (SFT). The repository includes both notebook and script-based approaches so you can run quick smoke tests locally or full experiments in Colab/remote GPU environments.

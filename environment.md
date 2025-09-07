@@ -15,6 +15,8 @@ Local devcontainer notes
   - python3 -m venv .venv
   - source .venv/bin/activate
   - pip install -r requirements.txt
+  - For development/testing (streaming HF `datasets`), install dev requirements:
+    - pip install -r requirements-dev.txt
 - This workspace is intended for orchestration and smoke testing locally; full model training requires a GPU and may be done in Colab or a GPU machine.
 
 Notebook rendering hygiene
