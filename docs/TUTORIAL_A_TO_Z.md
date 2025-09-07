@@ -107,9 +107,9 @@ Conversion flow:
 
 ```mermaid
 flowchart LR
-  CSV --> Conv[convert_csv_to_jsonl_shards.py]
-  Conv --> Shards[shard-0000.jsonl ... shard-000N.jsonl]
-  Shards --> DS[HF Dataset (streaming)]
+  CSV[CSV File] --> Conv[convert_csv_to_jsonl_shards.py]
+  Conv --> Shards["shard-0000.jsonl ... shard-000N.jsonl"]
+  Shards --> DS["HF Dataset (streaming)"]
 ```
 
 Schema example (per-line JSONL):
