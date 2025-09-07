@@ -1,4 +1,4 @@
-`````markdown
+
 # Model Training Gemma-270M — A-to-Z Tutorial (Beginner-Friendly)
 
 This tutorial walks through the entire project step-by-step. It assumes you can run basic shell commands and have Python installed. Filenames and commands are wrapped in backticks (e.g., `scripts/finetune_gemma_from_csv.py`). Mermaid diagrams are included to visualize workflows.
@@ -253,4 +253,3 @@ flowchart LR
 
 ```
 ```
-`````
