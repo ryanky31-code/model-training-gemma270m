@@ -37,9 +37,9 @@ High-level dataflow:
 
 ```mermaid
 flowchart LR
-  A[Generator (CSV)] --> B[Validator]
-  B --> C[Converter (CSV -> JSONL shards)]
-  C --> D[HF Dataset (streaming) / local preview]
+  A[Generator CSV] --> B[Validator]
+  B --> C[Converter CSV → JSONL shards]
+  C --> D[HF Dataset streaming / local preview]
   D --> E[Training CLI / Notebook]
   E --> F[Checkpoints / Artifacts]
   F --> G[Evaluation]
