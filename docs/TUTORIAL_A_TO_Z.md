@@ -1,6 +1,4 @@
-Got it ✅ — here’s your tutorial rewritten in **Markdown format**, but with the **tables expressed in Mermaid `table` syntax** instead of raw Markdown tables. This way everything (TOC, diagrams, tables) stays consistent with your Mermaid-first style.
 
----
 
 ````markdown
 # Model Training Gemma-270M — A-to-Z Tutorial (Beginner-Friendly)
@@ -227,9 +225,4 @@ table
   row "Why shard datasets?", "Splits large data into files to stream without OOM"
 ```
 
-```
 
----
-
-Would you like me to **add diagrams for the smoke vs large dataset pipeline as Mermaid `table`s** (with row counts, file names, output artifacts) so the docs show both the **dataflow** *and* the **artifact table** side by side?
-```
