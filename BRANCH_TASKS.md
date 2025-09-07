@@ -3,6 +3,7 @@ Branch: dev/colab-workflow — Ordered Task Plan (dependencies-first)
 Goal: implement the Colab/data/experiment workflow in dependency order. Each Main Task lists ordered subtasks. Start with foundational items that other tasks depend on.
 
 Legend: [x] done — [ ] pending
+Execution note: tasks below are tagged with [Agent] if they can be implemented and executed by the agent in this repo/devcontainer, or [Colab/Human] if they require interactive Colab (GPU, Drive mount, HF token in Colab) or user actions.
 
 Main Task 1 — Project & environment foundations (all other work depends on this)
 - [x] 1.1 Verify branch and working tree
@@ -20,21 +21,28 @@ Main Task 2 — Data generation core (depends on Task 1)
 - [x] 2.1 Large-scale batched generator (authoritative data source)
   - Implement `scripts/generate_synthetic_large.py` with params: `--n-samples`, `--chunk-size`, `--seed`, `--out-dir` (implemented)
   - Write CSV in streaming chunks and compute SHA256 per chunk/file (done)
+  - [Agent]
 - [ ] 2.2 Stratified sampling & balancing utilities
   - Add `--stratify-by` option and simple oversample/undersample modes to control class balance
+  - [Agent]
 - [x] 2.3 Storage & integrity
   - Save final CSV + ZIP atomically and produce SHA256 for verification (done)
   - (Optional) Add `--upload-to-drive` or `--upload-to-hf` flags (deferred)
+  - [Agent]
 - [x] 2.4 Keep `scripts/generate_synthetic_smoke.py` for quick smoke tests (present and executed)
+  - [Agent]
 
 Main Task 3 — Data validation & conversion (depends on Task 2)
 - [x] 3.1 Validation utilities
   - Add `scripts/validate_dataset.py` to check for missing targets, NaNs, range checks, and value distributions (implemented)
+  - [Agent]
 - [x] 3.2 CSV → HF conversational Dataset converter
   - Implement streaming/batched conversion to a Hugging Face `Dataset` to avoid large memory usage (converter implemented as JSONL shards)
   - Add CLI options for `--target-field` and `--prompt-template` (CLI provided)
+  - [Agent]
 - [x] 3.3 Unit tests for conversion
   - Add a unit test in `tests/test_conversion.py` that checks prompt and target formatting (implemented and passing)
+  - [Agent]
 
 Main Task 4 — Baselines & heuristics (depends on Task 3)
 - [ ] 4.1 Implement baseline predictors
@@ -45,8 +53,10 @@ Main Task 4 — Baselines & heuristics (depends on Task 3)
 Main Task 5 — Training infrastructure (depends on Task 3 + Task 1)
 - [x] 5.1 Training CLI scaffolding (basic CLI present: `scripts/finetune_gemma_from_csv.py`)
   - Extend `scripts/finetune_gemma_from_csv.py` with modes: `--mode full|lora|qlora`, `--max-rows`, `--out-dir`, `--resume` (extend as needed)
-- [ ] 5.2 LoRA / QLoRA support
+  - [Agent]
+- [ ] 5.2 LoRA / QLoRA support [IN-PROGRESS: Agent]
   - Add notebook cells and script code paths to enable LoRA and QLoRA training with recommended defaults
+  - [Agent implement + Colab run required]
 - [ ] 5.3 Resource & safety flags
   - Add `--fp16/--bf16`, `--gradient-checkpointing`, `--per-device-batch-size`, `--max-length`
 - [ ] 5.4 Checkpointing & persistence
