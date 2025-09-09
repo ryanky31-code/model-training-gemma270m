@@ -130,6 +130,62 @@ def sha256_of(path, chunk=1024 * 1024):
     return h.hexdigest()
 
 
+def apply_stratified_resample(rows, stratify_by, balance_mode="none", seed=None):
+    """
+    Stratify and resample a list of row dicts.
+
+    - rows: iterable/list of dicts
+    - stratify_by: single field name to group by
+    - balance_mode: 'none' | 'oversample' | 'undersample'
+    - seed: int or None for deterministic sampling/shuffle
+
+    Returns a new list of rows (may increase/decrease length depending on balance_mode).
+    This function is intended for shard-sized inputs and is not fully streaming.
+    """
+    if balance_mode not in ("none", "oversample", "undersample"):
+        raise ValueError("balance_mode must be one of: none, oversample, undersample")
+
+    rows = list(rows)
+    if not stratify_by or balance_mode == "none":
+        return rows
+
+    rng = random.Random(seed)
+    groups = {}
+    for r in rows:
+        key = r.get(stratify_by)
+        groups.setdefault(key, []).append(r)
+
+    sizes = {k: len(v) for k, v in groups.items()}
+    if not sizes:
+        return rows
+
+    if balance_mode == "oversample":
+        target = max(sizes.values())
+    elif balance_mode == "undersample":
+        target = min(sizes.values())
+    else:
+        target = None
+
+    balanced = []
+    for k, group_rows in groups.items():
+        n = len(group_rows)
+        if n == target:
+            balanced.extend(group_rows)
+        elif n < target:
+            # oversample with replacement
+            needed = target - n
+            picks = [rng.choice(group_rows) for _ in range(needed)]
+            balanced.extend(group_rows)
+            balanced.extend(picks)
+        else:
+            # undersample without replacement
+            sampled = rng.sample(group_rows, target)
+            balanced.extend(sampled)
+
+    rng.shuffle(balanced)
+    return balanced
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n-samples", type=int, default=10000)
