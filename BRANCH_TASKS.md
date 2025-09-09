@@ -99,6 +99,13 @@ Main Task 6 — Training experiments & orchestration (depends on Task 5)
 - [ ] 6.3 Smoke train / env checks
   - `--dry-run` mode to build trainer and verify no immediate failures (but skip heavy `.train()`) (pending: tie to 5.5)
 
+ - [x] 6.1 Learning-curve orchestration
+   - `scripts/run_learning_curve.py` runs training over increasing dataset sizes and records metrics (implemented; results saved to `learning_curve_results.json`)
+ - [ ] 6.2 Simple hyperparameter sweep helper
+   - Add a small wrapper to launch a few hyperparameter combinations and save results
+ - [x] 6.3 Smoke train / env checks
+   - `--dry-run` mode to build trainer and verify no immediate failures (dry-run tested on smoke CSV)
+
 Main Task 7 — Evaluation & analysis (depends on Task 6 + Task 4)
 - [ ] 7.1 Official evaluation script
   - `scripts/evaluate_model.py` — exact-match, top-k, confusion matrix, MAE/RMSE, per-class metrics
