@@ -1,0 +1,7 @@
+# Pinned dev/test dependencies (generated for CI reproducibility)
+# To refresh locally: python -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt && pip freeze > requirements-dev.lock.txt
+pytest==8.4.3
+pandas==2.2.3
+numpy==1.26.4
+datasets==2.12.0
+# Note: these versions are conservative examples; regenerate with pip freeze in your environment for exact pins.

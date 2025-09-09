@@ -1,5 +1,7 @@
 # model-training-gemma270m
 
+[![CI](https://github.com/ryanky31-code/model-training-gemma270m/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanky31-code/model-training-gemma270m/actions/workflows/ci.yml)
+
 Detailed README — Gemma-3 (270M) fine-tuning from synthetic CSV data
 
 This repository demonstrates an end-to-end workflow for generating a synthetic wireless dataset, converting it into a conversational format, and fine-tuning Google's Gemma-3 270M model using Hugging Face Transformers + TRL (SFT). The repository includes both notebook and script-based approaches so you can run quick smoke tests locally or full experiments in Colab/remote GPU environments.
@@ -84,6 +86,46 @@ Common issues & troubleshooting
 - HF model download errors: ensure you accepted the license on the model page and your HF token has the necessary access. Use `huggingface_hub.login()` to provide the token.
 - OOM during model load or training: reduce `per_device_train_batch_size`, reduce `max_length`, enable `gradient_checkpointing`, or use bf16/fp16 if your GPU supports it. For severe limits, switch to LoRA/QLoRA.
 - TRL / fused optimizers: if `adamw_torch_fused` or other fused ops fail, switch to standard `adamw_torch` or install matching PyTorch builds.
+
+LoRA vs QLoRA (step-by-step)
+--------------------------------
+LoRA (recommended for local/limited GPU)
+
+1. In Colab or your environment, install required packages (if not already):
+
+   ```bash
+   %pip install transformers peft
+   ```
+
+2. Run a quick smoke LoRA run (adapters only):
+
+   ```bash
+   python scripts/finetune_gemma_from_csv.py \
+     --csv synthetic_wifi_5ghz_outdoor_smoke.csv \
+     --mode lora \
+     --lora-r 8 --lora-alpha 32 --lora-dropout 0.05 \
+     --num-epochs 1 --per-device-batch-size 2 --max-rows 200 --dry-run
+   ```
+
+3. For a real LoRA run, increase `--num-epochs` and remove `--max-rows`.
+
+QLoRA (recommended for low-memory, Colab GPU)
+
+1. In Colab, install `bitsandbytes` and `peft` in a compatible CUDA environment:
+
+   ```bash
+   %pip install bitsandbytes peft
+   ```
+
+2. Run QLoRA in Colab (ensure you selected a GPU runtime):
+
+   ```bash
+   python scripts/finetune_gemma_from_csv.py \
+     --csv /content/synthetic_wifi_5ghz_outdoor.csv \
+     --mode qlora --num-epochs 2 --per-device-batch-size 4
+   ```
+
+3. Monitor memory/OOMs; adjust batch size, enable gradient checkpointing, or use fewer train samples if needed.
 
 Next steps and suggestions
 - Add explicit automated tests for CSV→dataset conversion. I can add a unit test that validates the first few records are converted to the expected message format.

@@ -58,7 +58,12 @@ def build_target_from_row(row, target_field):
 def prepare_dataset(csv_path, target_field, test_size=0.1, max_rows=None):
     # Local imports to avoid requiring heavy libraries when only parsing args/help
     import pandas as pd
-    from datasets import Dataset
+    try:
+        from datasets import Dataset
+        datasets_available = True
+    except Exception:
+        Dataset = None
+        datasets_available = False
 
     df = pd.read_csv(csv_path)
     if max_rows is not None:
@@ -75,12 +80,21 @@ def prepare_dataset(csv_path, target_field, test_size=0.1, max_rows=None):
         ]
         samples.append({"messages": messages})
 
-    ds = Dataset.from_pandas(pd.DataFrame(samples))
-    if test_size and 0.0 < test_size < 1.0:
-        ds = ds.train_test_split(test_size=test_size)
+    # If datasets is available, return a Hugging Face Dataset; otherwise fall back to simple lists
+    if datasets_available and Dataset is not None:
+        ds = Dataset.from_pandas(pd.DataFrame(samples))
+        if test_size and 0.0 < test_size < 1.0:
+            ds = ds.train_test_split(test_size=test_size)
+        else:
+            ds = {'train': ds}
+        return ds
     else:
-        ds = {'train': ds}
-    return ds
+        # Fallback: return a simple dict with train/test lists of message dicts
+        if test_size and 0.0 < test_size < 1.0:
+            split_idx = int(len(samples) * (1.0 - test_size))
+            return {'train': samples[:split_idx], 'test': samples[split_idx:]}
+        else:
+            return {'train': samples}
 
 
 def main():
@@ -88,31 +102,120 @@ def main():
     parser.add_argument('--csv', required=True, help='Path to CSV dataset')
     parser.add_argument('--base-model', default='google/gemma-3-270m-it', help='HF model id')
     parser.add_argument('--checkpoint-dir', default='./gemma_finetune', help='Output/checkpoint directory')
+    parser.add_argument('--mode', choices=['full', 'lora', 'qlora'], default='full',
+                        help='Training mode: full (fine-tune whole model), lora (LoRA adapters), qlora (QLoRA)')
+    # LoRA hyperparameters (scaffolding)
+    parser.add_argument('--lora-r', type=int, default=8, help='LoRA rank r')
+    parser.add_argument('--lora-alpha', type=int, default=32, help='LoRA alpha')
+    parser.add_argument('--lora-dropout', type=float, default=0.05, help='LoRA dropout')
     parser.add_argument('--num-epochs', type=int, default=3)
     parser.add_argument('--per-device-batch-size', type=int, default=4)
     parser.add_argument('--learning-rate', type=float, default=5e-5)
     parser.add_argument('--target-field', default='recommended_channel_mhz', help='target field to train on')
     parser.add_argument('--max-rows', type=int, default=None, help='Limit rows (useful for quick smoke tests)')
+    parser.add_argument('--dry-run', action='store_true', help='Prepare datasets and skip model imports/training')
+    # Resource & checkpointing flags
+    parser.add_argument('--fp16', action='store_true', help='Use FP16 if available')
+    parser.add_argument('--bf16', action='store_true', help='Use BF16 if available')
+    parser.add_argument('--gradient-checkpointing', action='store_true', help='Enable gradient checkpointing')
+    parser.add_argument('--save-strategy', default='epoch', choices=['no', 'epoch', 'steps'], help='Checkpoint save strategy')
+    parser.add_argument('--save-steps', type=int, default=500, help='Save every N steps when save-strategy=steps')
+    parser.add_argument('--save-total-limit', type=int, default=3, help='Maximum number of checkpoints to keep')
+    parser.add_argument('--resume-from-checkpoint', default=None, help='Path to checkpoint to resume from')
     args = parser.parse_args()
 
     # Prepare data
     print(f"Loading CSV from {args.csv} and preparing dataset (target={args.target_field})...")
     ds = prepare_dataset(args.csv, args.target_field, test_size=0.1, max_rows=args.max_rows)
 
-    # Lazy import to avoid requiring heavy libs if only using data prep
+    # If the user requested a dry-run, prepare the dataset and skip heavy imports/training.
+    if args.dry_run:
+        # Print lightweight dataset summary and exit before importing transformers/trl
+        if isinstance(ds, dict) and 'train' in ds:
+            try:
+                train_len = len(ds['train'])
+            except Exception:
+                train_len = 'unknown'
+            try:
+                test_len = len(ds['test']) if 'test' in ds else 0
+            except Exception:
+                test_len = 'unknown'
+        else:
+            try:
+                train_len = len(ds)
+            except Exception:
+                train_len = 'unknown'
+            test_len = 0
+        print(f"Dry-run: prepared dataset. train={train_len}, test={test_len}, max_rows={args.max_rows}")
+        print("Skipping model imports and trainer construction (dry-run).")
+        return
+
+    # Lazy import to avoid requiring heavy libs when executing full training
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM
     from trl import SFTConfig, SFTTrainer
 
+    # LoRA/QLoRA scaffolding -- attempt safe imports and print actionable messages if missing
+    use_lora = args.mode == 'lora'
+    use_qlora = args.mode == 'qlora'
+    peft_available = False
+    bnb_available = False
+    if use_lora or use_qlora:
+        try:
+            import peft  # type: ignore
+            peft_available = True
+        except Exception:
+            print('Warning: `peft` not available. To use --mode lora or qlora install `peft` (pip install peft).')
+        try:
+            import bitsandbytes as bnb  # type: ignore
+            bnb_available = True
+        except Exception:
+            # bitsandbytes is required for QLoRA and helpful for LoRA memory savings
+            if use_qlora:
+                print('Warning: `bitsandbytes` not available. QLoRA requires bitsandbytes. Consider installing `bitsandbytes`.')
+
+    if use_qlora and not (peft_available and bnb_available):
+        print('QLoRA mode requested but requirements missing. Falling back to full fine-tune mode. Run in Colab with proper packages for QLoRA.')
+        use_qlora = False
+        args.mode = 'full'
+
     # Load model and tokenizer
     print(f"Loading base model {args.base_model} (this requires that you accepted the license on HF)...")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.base_model,
-        torch_dtype='auto',
-        device_map='auto',
-        attn_implementation='eager'
-    )
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    # Prefer QLoRA-style 4-bit load when requested and bitsandbytes is available.
+    model = None
+    tokenizer = None
+    try:
+        if use_qlora and bnb_available:
+            try:
+                # Try to create a BitsAndBytesConfig for 4-bit quantized loading
+                from transformers import BitsAndBytesConfig
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                )
+                model = AutoModelForCausalLM.from_pretrained(
+                    args.base_model,
+                    device_map='auto',
+                    quantization_config=bnb_config,
+                )
+                print("Loaded model with 4-bit quantization (bitsandbytes).")
+            except Exception as ql_err:
+                print('Warning: QLoRA 4-bit load failed, falling back to regular load:', ql_err)
+
+        if model is None:
+            # Regular (non-quantized) load
+            model = AutoModelForCausalLM.from_pretrained(
+                args.base_model,
+                torch_dtype='auto',
+                device_map='auto',
+                attn_implementation='eager'
+            )
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    except Exception as e:
+        print('Failed to load model or tokenizer:', str(e))
+        raise
 
     torch_dtype = model.dtype
 
@@ -122,14 +225,16 @@ def main():
         packing=False,
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.per_device_batch_size,
-        gradient_checkpointing=False,
+        gradient_checkpointing=args.gradient_checkpointing,
         optim='adamw_torch_fused',
         logging_steps=1,
-        save_strategy='epoch',
+        save_strategy=args.save_strategy,
+        save_steps=args.save_steps,
+        save_total_limit=args.save_total_limit,
         eval_strategy='epoch',
         learning_rate=args.learning_rate,
-        fp16=True if torch_dtype == torch.float16 else False,
-        bf16=True if torch_dtype == torch.bfloat16 else False,
+        fp16=args.fp16 and (torch_dtype == torch.float16),
+        bf16=args.bf16 and (torch_dtype == torch.bfloat16),
         lr_scheduler_type='constant',
         push_to_hub=False,
         report_to='tensorboard',
@@ -138,6 +243,42 @@ def main():
             'append_concat_token': True,
         }
     )
+
+    # If LoRA or QLoRA requested and peft is available, prepare adapters (scaffolding only)
+    if (use_lora or use_qlora) and peft_available:
+        try:
+            # Peform minimal LoRA wiring: create peft config and wrap the model.
+            # We keep this scaffolding lightweight; actual hyperparams and tuning
+            # should be run in Colab/GPU environment.
+            from peft import LoraConfig, get_peft_model, prepare_model_for_peft  # type: ignore
+            print('Preparing model for LoRA adapters (scaffolding)...')
+            model = prepare_model_for_peft(model)
+            # Use user-specified LoRA hyperparameters
+            lora_config = LoraConfig(
+                r=args.lora_r,
+                lora_alpha=args.lora_alpha,
+                target_modules=['q_proj', 'v_proj'],
+                lora_dropout=args.lora_dropout,
+                bias='none',
+            )
+            model = get_peft_model(model, lora_config)
+            print('LoRA adapters attached (scaffolding).')
+        except Exception as e:
+            print('Failed to attach LoRA adapters automatically:', str(e))
+            print('Proceeding with base model (full fine-tune expected).')
+
+    # QLoRA scaffolding: if requested and bitsandbytes + peft available, try 4-bit loading
+    if use_qlora and peft_available and bnb_available:
+        try:
+            # Attempt to load in 4-bit with bnb; this is a best-effort in the devcontainer.
+            # Actual QLoRA runs are expected in Colab or an environment with GPU + bnb.
+            print('Attempting QLoRA-style 4-bit load (best-effort in this environment)...')
+            # The model was already loaded above; in a true QLoRA flow we'd re-load with
+            # bitsandbytes.load_in_4bit=True and related kwargs. Here we warn and continue.
+            print('Note: For real QLoRA, re-run in Colab with `bitsandbytes` and `peft` installed.')
+        except Exception as e:
+            print('QLoRA scaffolding failed at runtime:', str(e))
+
 
     print('Creating SFTTrainer...')
     trainer = SFTTrainer(
@@ -148,8 +289,13 @@ def main():
         processing_class=tokenizer,
     )
 
-    print('Starting training...')
-    trainer.train()
+    # Resume support
+    if args.resume_from_checkpoint:
+        print(f"Resuming training from checkpoint: {args.resume_from_checkpoint}")
+        trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    else:
+        print('Starting training...')
+        trainer.train()
     trainer.save_model()
     print(f"Training complete. Checkpoints saved to {args.checkpoint_dir}")
 

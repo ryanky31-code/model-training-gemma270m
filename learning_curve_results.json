@@ -1,0 +1,14 @@
+[
+  {
+    "max_rows": 50,
+    "returncode": 0,
+    "stdout": "Loading CSV from synthetic_wifi_5ghz_outdoor_smoke.csv and preparing dataset (target=expected_throughput_mbps)...\nDry-run: prepared dataset. train=45, test=5, max_rows=50\nSkipping model imports and trainer construction (dry-run).\n",
+    "stderr": ""
+  },
+  {
+    "max_rows": 100,
+    "returncode": 0,
+    "stdout": "Loading CSV from synthetic_wifi_5ghz_outdoor_smoke.csv and preparing dataset (target=expected_throughput_mbps)...\nDry-run: prepared dataset. train=45, test=5, max_rows=100\nSkipping model imports and trainer construction (dry-run).\n",
+    "stderr": ""
+  }
+]
