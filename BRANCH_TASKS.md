@@ -25,8 +25,8 @@ Main Task 2 — Data generation core (depends on Task 1)
   - Implement `scripts/generate_synthetic_large.py` with params: `--n-samples`, `--chunk-size`, `--seed`, `--out-dir` (implemented)
   - Write CSV in streaming chunks and compute SHA256 per chunk/file (done)
   - [Agent]
-- [ ] 2.2 Stratified sampling & balancing utilities
-  - Add `--stratify-by` option and simple oversample/undersample modes to control class balance
+- [x] 2.2 Stratified sampling & balancing utilities
+  - Add `--stratify-by` option and simple oversample/undersample modes to control class balance (implemented)
   - [Agent]
 - [x] 2.3 Storage & integrity
   - Save final CSV + ZIP atomically and produce SHA256 for verification (done)
@@ -115,8 +115,8 @@ Main Task 8 — Colab polish & one-click demo (depends on Task 5 + Task 7)
  - [x] 8.4 Drive mount and HF token handling (user accepted HF license and added token to Colab keys — no further action needed)
 
 Main Task 9 — Tests, CI and merge prep (depends on finished code)
-- [ ] 9.1 Unit tests
-  - Add tests for generator determinism, conversion output, and validator (conversion test and validator added — generator determinism pending)
+ - [x] 9.1 Unit tests
+  - Add tests for generator determinism, conversion output, and validator (conversion tests, validator, and generator determinism tests added and passing)
 - [ ] 9.2 Lightweight CI
   - Configure CI to run unit tests and smoke data generation only; avoid heavy GPU tasks
  - [x] 9.2 Lightweight CI
