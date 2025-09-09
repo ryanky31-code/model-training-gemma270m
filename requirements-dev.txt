@@ -2,3 +2,6 @@
 # Install with: pip install -r requirements-dev.txt
 
 datasets
+pytest
+pandas
+numpy
