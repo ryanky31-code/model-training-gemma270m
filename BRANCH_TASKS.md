@@ -66,6 +66,11 @@ Main Task 4 — Baselines & heuristics (depends on Task 3)
 - [ ] 4.2 Baseline evaluation harness
   - Produce CSV/markdown summary of baseline metrics for quick comparisons
 
+ - [x] 4.1 Implement baseline predictors
+   - Random baseline, frequency baseline, mean-throughput baseline (implemented in `scripts/baselines.py`)
+ - [x] 4.2 Baseline evaluation harness
+   - Produce CSV/markdown summary of baseline metrics for quick comparisons (CLI supports CSV/JSON outputs)
+
 Main Task 5 — Training infrastructure (depends on Task 3 + Task 1)
 - [x] 5.1 Training CLI scaffolding (basic CLI present: `scripts/finetune_gemma_from_csv.py`)
   - Extend `scripts/finetune_gemma_from_csv.py` with modes: `--mode full|lora|qlora`, `--max-rows`, `--out-dir`, `--resume` (extend as needed)
