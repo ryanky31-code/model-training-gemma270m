@@ -100,7 +100,7 @@ def prepare_dataset(csv_path, target_field, test_size=0.1, max_rows=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', required=True, help='Path to CSV dataset')
-    parser.add_argument('--base-model', default='google/gemma-3-270m-it', help='HF model id')
+    parser.add_argument('--base-model', default='google/gemma-3-270m', help='HF model id (default: google/gemma-3-270m)')
     parser.add_argument('--checkpoint-dir', default='./gemma_finetune', help='Output/checkpoint directory')
     parser.add_argument('--mode', choices=['full', 'lora', 'qlora'], default='full',
                         help='Training mode: full (fine-tune whole model), lora (LoRA adapters), qlora (QLoRA)')
@@ -175,12 +175,12 @@ def main():
                 print('Warning: `bitsandbytes` not available. QLoRA requires bitsandbytes. Consider installing `bitsandbytes`.')
 
     if use_qlora and not (peft_available and bnb_available):
-        print('QLoRA mode requested but requirements missing. Falling back to full fine-tune mode. Run in Colab with proper packages for QLoRA.')
+        print('QLoRA mode requested but requirements missing. Falling back to full fine-tune mode. Run in Colab with proper packages for QLoRA (bitsandbytes, peft).')
         use_qlora = False
         args.mode = 'full'
 
     # Load model and tokenizer
-    print(f"Loading base model {args.base_model} (this requires that you accepted the license on HF)...")
+    print(f"Loading base model {args.base_model} (ensure you accepted the license on HF and have a valid token)...")
     # Prefer QLoRA-style 4-bit load when requested and bitsandbytes is available.
     model = None
     tokenizer = None
