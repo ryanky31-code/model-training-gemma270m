@@ -222,6 +222,35 @@ flowchart LR
 | `smoke-generator` | Runs `scripts/generate_synthetic_smoke.py` |
 | `dry-run-trainer` | Runs training CLI with `--dry-run`         |
 
+### CI issue log — pytest not found (2025-09-09)
+
+Issue: A GitHub Actions run failed during the `test` job with the error:
+
+```
+/home/runner/...: line 1: pytest: command not found
+Error: Process completed with exit code 127.
+```
+
+Cause: the workflow invoked the `pytest` binary from the shell, but the interpreter environment used for `pip` installs didn't expose `pytest` on PATH (race/`pip` vs `python -m pip` ambiguity). The install step also used a heavy `requirements.txt` in some runs, increasing install time and the chance of race/timeout.
+
+Fix applied:
+
+- Use `python -m pip install ...` for all installs in the CI workflow to ensure packages are installed into the same interpreter environment.
+- Explicitly install `pytest` (or prefer `requirements-dev.txt` containing test deps) before running tests.
+- Invoke the test runner with `python -m pytest` to avoid relying on a PATH-resolved `pytest` binary.
+
+Verification steps performed:
+
+1. Updated `.github/workflows/ci.yml` to use `python -m pip` and `python -m pytest`, and to verify `pytest --version` before running tests.
+2. Added a small `requirements-dev.txt` with `pytest`, `pandas`, and `numpy` so the `test` job installs a lightweight dev environment instead of the full ML stack.
+3. Ran the project's unit tests locally (`pytest -q`) — all tests pass.
+
+Follow-ups (recommended):
+
+- Merge and monitor the GitHub Actions run for `dev/colab-workflow` to confirm the pipeline uses the updated workflow and succeeds.
+- Consider pinning test deps in a lockfile or using a prebuilt Docker image for CI to avoid installation variability.
+
+
 ---
 
 ## 9) Troubleshooting — common errors and quick fixes

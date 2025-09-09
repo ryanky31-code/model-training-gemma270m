@@ -15,16 +15,41 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-dev.txt', '**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install deps (light)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # Prefer a lightweight dev requirements file for tests when available
+          if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; else python -m pip install -r requirements.txt; fi
+          # Ensure pytest is present for the test step (installed via requirements-dev.txt or explicitly)
+          python -m pip install pytest
+      - name: CI debug info
+        run: |
+          echo "--- python & pip versions ---"
+          python --version || true
+          pip --version || true
+          echo "--- pip list (top 50) ---"
+          pip list --format=columns | sed -n '1,50p' || true
+          echo "--- workspace top-level files ---"
+          ls -la || true
+          echo "--- find (depth 2) ---"
+          find . -maxdepth 2 -type f | sed -n '1,200p' || true
       - name: Run notebook fixer
         run: |
           python scripts/fix_notebook_widgets.py site/en
+      - name: Verify pytest available
+        run: |
+          echo "--- pytest info ---"
+          python -m pytest --version || python -c "import pytest; print('pytest', pytest.__version__)" || true
       - name: Run tests
         run: |
-          pytest -q -r a
+          python -m pytest -q -r a
 
   smoke-generator:
     runs-on: ubuntu-latest
@@ -35,6 +60,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-smoke-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install minimal deps
         run: |
           python -m pip install --upgrade pip
@@ -52,6 +84,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-trainer-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install minimal deps
         run: |
           python -m pip install --upgrade pip
