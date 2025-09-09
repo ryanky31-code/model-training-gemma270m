@@ -114,6 +114,13 @@ Main Task 7 — Evaluation & analysis (depends on Task 6 + Task 4)
 - [ ] 7.3 Baseline vs model comparison
   - Automate side-by-side comparison with baselines and produce final summary table
 
+-- 2025-09-09: Work completed
+- [x] 7.1 Official evaluation script
+  - Added `scripts/evaluate_model.py` (MAE/RMSE for numeric, accuracy + confusion for categorical).
+  - Added unit tests `tests/test_evaluate_model.py` and fixture `tests/fixtures/preds_synthetic.csv`.
+  - CI: integrated evaluation into `dry-run-lora` job to run evaluation on the synthetic preds CSV and write `eval_lora.json`.
+
+
 Main Task 8 — Colab polish & one-click demo (depends on Task 5 + Task 7)
 - [ ] 8.1 Notebook parameter toggles
   - Add a top-of-notebook config cell for mode, N_SAMPLES, N_EPOCHS, BATCH_SIZE, OUT_DIR

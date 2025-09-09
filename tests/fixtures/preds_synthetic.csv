@@ -1,0 +1,5 @@
+expected_throughput_mbps,pred
+10,12
+20,18
+high,high
+low,medium
