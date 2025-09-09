@@ -181,13 +181,41 @@ def main():
 
     # Load model and tokenizer
     print(f"Loading base model {args.base_model} (this requires that you accepted the license on HF)...")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.base_model,
-        torch_dtype='auto',
-        device_map='auto',
-        attn_implementation='eager'
-    )
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    # Prefer QLoRA-style 4-bit load when requested and bitsandbytes is available.
+    model = None
+    tokenizer = None
+    try:
+        if use_qlora and bnb_available:
+            try:
+                # Try to create a BitsAndBytesConfig for 4-bit quantized loading
+                from transformers import BitsAndBytesConfig
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                )
+                model = AutoModelForCausalLM.from_pretrained(
+                    args.base_model,
+                    device_map='auto',
+                    quantization_config=bnb_config,
+                )
+                print("Loaded model with 4-bit quantization (bitsandbytes).")
+            except Exception as ql_err:
+                print('Warning: QLoRA 4-bit load failed, falling back to regular load:', ql_err)
+
+        if model is None:
+            # Regular (non-quantized) load
+            model = AutoModelForCausalLM.from_pretrained(
+                args.base_model,
+                torch_dtype='auto',
+                device_map='auto',
+                attn_implementation='eager'
+            )
+        tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    except Exception as e:
+        print('Failed to load model or tokenizer:', str(e))
+        raise
 
     torch_dtype = model.dtype
 
@@ -216,14 +244,13 @@ def main():
         }
     )
 
-    # If LoRA requested and peft is available, prepare adapters (scaffolding only)
-    if use_lora and peft_available:
+    # If LoRA or QLoRA requested and peft is available, prepare adapters (scaffolding only)
+    if (use_lora or use_qlora) and peft_available:
         try:
             # Peform minimal LoRA wiring: create peft config and wrap the model.
             # We keep this scaffolding lightweight; actual hyperparams and tuning
             # should be run in Colab/GPU environment.
             from peft import LoraConfig, get_peft_model, prepare_model_for_peft  # type: ignore
-
             print('Preparing model for LoRA adapters (scaffolding)...')
             model = prepare_model_for_peft(model)
             # Use user-specified LoRA hyperparameters
