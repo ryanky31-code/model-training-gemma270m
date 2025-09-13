@@ -35,7 +35,12 @@ Quick start (local smoke test)
    Note: `--max-rows` prevents full training; the script defers heavy imports until runtime so you can validate argument parsing without installing all heavy libs.
 
 Running in Google Colab (recommended for GPU training)
-1. Open the notebook in Colab:
+
+📋 **Complete Colab Guide:** See [GOOGLE_COLAB_GUIDE.md](./GOOGLE_COLAB_GUIDE.md) for comprehensive documentation of all available notebooks and setup instructions.
+
+🚀 **Quick Start:** See [COLAB_QUICK_REFERENCE.md](./COLAB_QUICK_REFERENCE.md) for one-click links and copy-paste setup commands.
+
+1. Open the main notebook in Colab:
 
    https://colab.research.google.com/github/ryanky31-code/model-training-gemma270m/blob/main/site/en/gemma/docs/core/huggingface_text_full_finetune_with_generator.ipynb
 
